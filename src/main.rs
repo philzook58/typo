@@ -63,7 +63,7 @@ fn myid<A>(x : A) -> A {
     x
 } 
 
-fn snd<A,B>((x,y): (A,B)) -> B{
+fn mysnd<A,B>((x,y): (A,B)) -> B{
     y
 }
 
@@ -154,6 +154,198 @@ impl<X,Y> Apply for Fst<(X,Y)> {
     type Output = X;
 }
 // trait Eval // trait Apply?
+#[derive(Clone, Debug)]
+enum LamExpr {
+    Lam( Box<LamExpr>),
+    App( Box<LamExpr>,  Box<LamExpr>),
+    Var( usize),
+    Lit(i64) // Pair, Fst, Snd
+}
+use LamExpr::*;
+
+/*
+split enum out may
+struct Lam<U>( )
+
+or... 
+reflection into typeclass via 
+class Reflect s
+    yada yada
+    yada yada
+    yada yada
+use macro to make fresh reflection class every time.
+
+PhantomData<True>
+trait Reflect where
+    type Output;
+    val : Output;
+impl Reflect for True where
+    type Output = bool;
+    val = true;
+impl Reflect for False{
+    type Output = bool;
+    val = false;
+    }
+-- reflecting ordinary types
+-- some kind of dyanmic typing might pull this off?
+-- Any
+impl Reflect for Vec<U> where
+    type Output = VecR<U::Output>; 
+    val = VecR(val);
+
+reflection can perform something very singleton like.
+typeclasses cna perform higher rank functionality.
+
+(Reflect fi) (Reflect fo) (Reflect fs) => reifyWith x match x => 
+
+reifyWith ::  MyGADT s' -> (Reflect s, Reflect fs) => s -> fs) (Reflect s) (Reflect s) -> f s'
+reifyWith 
+
+reifyWith 
+refiyWithVecMyGADT Reflect s => MyGADT s' -> Vec<s::out> -> Vec<s::out> -> Vec<s> -> Vec<s::out>
+matchish Reflect s => 
+
+reifyWith GADT s -> (Reflect s s' => f s' -> f s') -> f s
+Reflect<Int> s
+
+Reify
+Eq<Int> for U{
+
+}
+
+Eq<>
+
+typclass equality
+
+Eq<U> {
+    cast :: Self -> U
+    uncast :: U -> Self
+}
+
+Eq<i64> for i64{
+      ?leibnitz?
+      cast = id
+      uncast = id
+}
+
+s : Eq<Int>
+s' : Eq<Bool>
+
+(Type -> GARY) -> 
+
+refl : Eq<A,A>
+withRefl 
+
+
+App<Vec<Type>,A>
+impl Eval for App<Vec<Type>,A> where A : Eval{
+    type Output = Vec<A::Output>
+}
+impl Eval for i64{
+    type Output = i64;
+}
+
+impl Abstract for Vec<A> {
+    type Ouput = App<Vec<Type>,A::Abstract
+}
+
+impl EvalOrAbstract<A> {
+
+}
+
+Unify f<Int> (App<Vec<Type>,>) where
+ -> App<F,Int> -> App<F,Bool> -> 
+ reify( c1 : impl Eval<App<F,Int>>, c2 : impl ) where fi = App<F,Int> as Eval :: Output 
+refiy( c1 : fi, )
+
+App
+
+we might need something more like the coq case syntax giving the explanation on how to build the type of the result.
+This is only acceptable with a tactic language.
+
+desctrcut<F> :: GADT s -> Eval App<F,Int> -> Eval App<F,Bool> -> Eval App<F,s>
+destructEq :: Eq a b -> Eval App2<F,A,A> -> Eval App2<F,A,B>
+
+struct Lam<A,B>
+type MyExpr<A> = Lam<A, Vec<A>> // sort of a typelevel HOAS
+lam!(fred = \a b -> b) -> type Fred0<A,B> = Fred<>
+need to curry everythign? 
+lam!(fred = \a b -> Vec a)   type Fred<A,B> = Vec<A>
+pat!(fred a b = )
+lam!(fred = \a b c -> ) ==> type Fred<A,B,C> = 
+
+impl Apply Fred<Type,Type,Type>
+
+
+
+
+Abtract 
+HKT = Abstract
+
+fn<U>( )
+
+f s -> f s -> f s ->
+
+
+R -> R -> R
+   U ->  U -> U -> U
+require GADT destructor for every pair of GADT to destruct and context to put it in?
+destruct
+maybe via reflection? reflect type variables into 
+desugar into lambda   |x y z| =>  
+a higher order macro. Can we do that?
+
+smart constructors
+fn lam(a : LamExpr<U>) -> LamExpr<Arr<U,V>>
+
+returning a type that only implements a trait is a way of exitentializing.
+
+*/
+// https://gist.github.com/kyleheadley/af149f7452c8163667e2b047743a9e44
+// typevel lambda calc
+fn eval(mut env : Vec<LamExpr>, term : LamExpr) -> LamExpr {
+
+    match term{
+        LamExpr::App(l, v) => {
+            let env2 = env.clone();
+            let v2 = eval( env2, *v);
+            env.push(v2);
+            eval( env  , *l)
+            },
+        LamExpr::Lam(b) => eval(env, *b),
+        LamExpr::Var(i) => {
+            if env.len() > i{
+                env[i].clone()
+            }
+            else {
+                Var(i)
+            }            
+        },
+        Lit(x) => Lit(x)
+    }
+}
+
+fn app(f : LamExpr, x : LamExpr) -> LamExpr{
+    LamExpr::App(Box::new(f), Box::new(x))
+}
+fn lam(b : LamExpr) -> LamExpr{
+    Lam(Box::new(b))
+}
+
+fn id() -> LamExpr {
+   LamExpr::Lam(Box::new(Var(0)))
+}
+
+fn pair(a : LamExpr, b : LamExpr) -> LamExpr{
+    lam(app(app(Var(0), a), b))
+}
+fn fst() -> LamExpr{
+    lam(lam( Var(1)))
+}
+
+fn snd() -> LamExpr{
+    lam(lam( Var(0)))
+}
 
 struct TypeTag {}
 
@@ -215,8 +407,14 @@ impl<B, Env> ApplyDB<Env> Lam<B> where Apply<Cons<Arg, Env>>  {
 // I mean I think rust has sized arrayc built in, but still.
 
 fn main() {
+
     println!("Hello, world!");
     dbg!(MINE);
-    dbg!(snd((1,"Hi")));
+    dbg!(mysnd((1,"Hi")));
+
+
+    dbg!(eval(Vec::new(),  app(id(),Lit(1))  ));
+    dbg!(eval(Vec::new(),  id()));
+    dbg!(eval(Vec::new(),  app(fst(), pair(Lit(0),Lit(1)))     ));
 
 }
