@@ -329,7 +329,7 @@ fn app(f : LamExpr, x : LamExpr) -> LamExpr{
     LamExpr::App(Box::new(f), Box::new(x))
 }
 fn lam(b : LamExpr) -> LamExpr{
-    Lam(Box::new(b))
+    LamExpr::Lam(Box::new(b))
 }
 
 fn id() -> LamExpr {
@@ -392,7 +392,7 @@ trait ApplyDB<Env> {
 trait Eval<Env> {
 
 }
-
+/*
 struct Apply2<L,X> {lam : PhantomData<L> , var : PhantomData<X>  }
 
 impl<Env> Eval where {
@@ -402,7 +402,7 @@ impl<B, Env> ApplyDB<Env> Lam<B> where Apply<Cons<Arg, Env>>  {
 
 }
 
-
+*/
 // sized Vec?
 // I mean I think rust has sized arrayc built in, but still.
 
