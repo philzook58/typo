@@ -1,6 +1,7 @@
 // use std::option;
 use std::marker::PhantomData;
 use std::ops::Add;
+use std::mem;
 const MINE : Option<i64> = None;
 // https://github.com/gtestault/primitive-recursive-functions
 
@@ -405,6 +406,75 @@ impl<B, Env> ApplyDB<Env> Lam<B> where Apply<Cons<Arg, Env>>  {
 */
 // sized Vec?
 // I mean I think rust has sized arrayc built in, but still.
+
+trait App1<A> {
+    type T;
+}
+
+
+
+enum Gadt<A> {
+    TInt(PhantomData<A>),
+    TBool(PhantomData<A>)
+    
+}
+// ould macro desgar TInt to TIntINTERNALDONOTUSE + a random string
+// then build the specialzied constructors that 
+fn TBool2() -> Gadt<bool>{
+    Gadt::TBool(PhantomData)
+}
+
+fn tInt() -> Gadt<i64>{
+    Gadt::TInt(PhantomData)
+}
+
+// every use site of gmatch reuqires an instance of App1 connected to a function symbol.
+struct F1 {}
+impl<A> App1<A> for F1{
+    type T = Vec<Vec<A>>;
+}
+// type F1 = HKT!( Vec<Vec<0,1,2>><2>  )
+// match 
+// presumably a match can be desugared by a macro. Build the above struct and instance, and turn the cases into 
+
+// case1 will often be a closure type.
+fn gmatch<F,S>(x : Gadt<S>, case1 : <F as App1<bool>>::T   , case2 : <F as App1<i64>>::T ) -> <F as App1<S>>::T  where 
+         F : App1<bool>,
+         F : App1<i64>,
+         F : App1<S>
+         {
+    match x{
+        Gadt::TBool(_) => unsafe{mem::transmute_copy(&case1)}, // I guess this is horrifying
+        Gadt::TInt(_) => unsafe{mem::transmute_copy(&case2)}
+    }
+}
+
+struct Eq<A,B>(PhantomData<A>, PhantomData<B>); // don't even bother having a constructor
+// Mauybe we should call the whole thing Refl?
+
+trait App2<A,B> {
+    type T;
+}
+// family!(F<A,B> = Vec<yadayaydayd>) => struct F {} + impl<A,A> AppN<A,B> for F {type T = Vec yadaya}
+// altenrative
+fn matchEq<F,A,B>(x : Eq<A,B>, case1 : <F as App2<A,A>>::T) -> <F as App2<A,B>>::T where
+ F : App2<A,B>,
+ F : App2<A,A>
+ {
+    unsafe{mem::transmute_copy(&case1)}
+}
+
+// reflect!( enum Yada = { , , , }  )
+// singleton!()
+// 
+
+
+// This is pretty similar to the implementation of refl.
+// He's got some stuff we hsould also do. ?Sized annotations
+// and he has mem forget the original reference.
+// https://www.reddit.com/r/rust/comments/9neop8/are_there_any_projects_trying_to_emulate/
+
+// That our trusted codebase is built by macro is pretty horrifying.
 
 fn main() {
 
