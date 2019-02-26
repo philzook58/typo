@@ -92,13 +92,22 @@ struct Cons<A,B> {h: PhantomData<A>, t: PhantomData<B> }
 struct Nil {}
 type t3 = Cons<Z , Nil>;
 // struct Apply<A,B> {f: PhantomData<A>, x: PhantomData<B> }
-struct Lam<V,B> {var : PhantomData<V>, body : PhantomData<B>}
+// struct Lam<V,B> {var : PhantomData<V>, body : PhantomData<B>}
 type t4 = (bool,bool);
 type KV<K,V> = (K,V);
 
-trait Lookup<K> {
-    type Output;
+trait Lookup<N> {
+    type T;
 }
+
+impl<A,B> Lookup<Z> for Cons<A,B>{
+    type T = A;
+}
+
+impl<N,A,B> Lookup<S<N>> for Cons<A,B> where B : Lookup<N> {
+    type T = B::T;
+}
+
 
 //impl<K> Lookup<K> for (( , ), )
 // kind of the same thing as HKT
@@ -145,6 +154,65 @@ impl<X,Y> Apply for Fst<(X,Y)> {
     type Output = X;
 }
 // trait Eval // trait Apply?
+
+struct TypeTag {}
+
+struct List<A> {
+    head : A, 
+    tail : Box<List<A>>
+}
+
+trait ApplyHKT<U> {
+    type Output;
+}
+
+trait AbstractHKT {
+    type Output;
+}
+// splitting the suggested HKT typeclass into two method.
+// may want tag types the be macro generated to be units.
+impl<U> AbstractHKT for List<U>{
+    type Output = List<TypeTag>;
+}
+
+impl<U> ApplyHKT<U> for List<TypeTag>{
+    type Output = List<U>;
+}
+enum Lit<U> {
+    LitInt(i64, PhantomData<U>),
+    LitBool(bool, PhantomData<U>)
+}
+/*
+trait GadtTest : HKT<i64> HKT<bool> {
+    fn litint(i64) -> Self::HKT<i64>::T;
+    fn litbool(bool) -> Self::HKT<bool>::T;
+}
+*/
+
+struct Lam<B> (PhantomData<B>);
+
+type T5 = Lam<List<Z>>; // The de bruijn indexed List type
+
+trait ApplyDB<Env> {
+    type T;
+}
+
+trait Eval<Env> {
+
+}
+
+struct Apply2<L,X> {lam : PhantomData<L> , var : PhantomData<X>  }
+
+impl<Env> Eval where {
+
+} 
+impl<B, Env> ApplyDB<Env> Lam<B> where Apply<Cons<Arg, Env>>  {
+
+}
+
+
+// sized Vec?
+// I mean I think rust has sized arrayc built in, but still.
 
 fn main() {
     println!("Hello, world!");
