@@ -11,6 +11,56 @@ type T1 = S<Z>;
 struct True {}
 struct False {}
 
+trait ReflectBool {
+    const val : bool; // maybe this should be a function that takles PhantomData and called reflectBool
+}
+
+impl ReflectBool for True{
+    const val : bool  = true;
+}
+
+impl ReflectBool for False{
+    const val : bool = false;
+}
+
+/*
+suggestion 4.
+
+impl ReflectBool for Either<A,B> where A : ReflectBool, B: ReflectBool {
+    reflectBool(x : Either<A,B>) -> bool {
+        match x {
+            Left  y => reflectBool(y)
+            Right y => reflectBool(y)
+        }
+        
+    }
+}
+
+*/
+
+// 1. unsafe coerce
+// 2. require seperate functions. syntactically copy f. Turn reifyBool into macro. That's not so bad. We can do this because Bool is a finite universe. We don't really need forall s since our intention is that it only contains a finite universe of stuff
+// 3. Fake higher rank functions somehow using a typeclass wrapper
+// 4. Require an Either of all possible values. Implement reflection for this either via matching on left right tags.
+fn reifyBool<F, G, W>( x : bool, f : F, g : G) -> W where
+    F : FnOnce(PhantomData<True>) -> W, // has to take an Either of the different proxies?
+    G : FnOnce(PhantomData<False>) -> W {
+        if x {
+            let q : PhantomData<True> = PhantomData;
+            f(q)
+        }
+        else{
+            let q : PhantomData<False> = PhantomData;
+            g(q)
+        }
+    }
+// Yea. I feel like this is kind of close to a GADT.
+
+fn getVal<R>(x : PhantomData<R>) -> bool where R : ReflectBool  {  R::val    }
+fn example() -> bool {reifyBool(true, getVal, getVal)} // this puts true into the type system and then back out
+// if you want to use different functions for f and g, I feel like that is your perogative.
+
+
 trait Not{
     type Res;
 }
@@ -486,5 +536,6 @@ fn main() {
     dbg!(eval(Vec::new(),  app(id(),Lit(1))  ));
     dbg!(eval(Vec::new(),  id()));
     dbg!(eval(Vec::new(),  app(fst(), pair(Lit(0),Lit(1)))     ));
+    dbg!(example());
 
 }
