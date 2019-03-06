@@ -214,17 +214,17 @@ impl<X,Y> Apply<(X,Y)> for Fst{
     type Output = X;
 }
 */
-struct Id<X>(PhantomData<X>);
-struct Fst<X>(PhantomData<X>);
+struct Id7<X>(PhantomData<X>);
+struct Fst7<X>(PhantomData<X>);
 trait Apply {
     type Output;
 }
 
-impl<X> Apply for Id<X> {
+impl<X> Apply for Id7<X> {
     type Output = X;
 }
 
-impl<X,Y> Apply for Fst<(X,Y)> {
+impl<X,Y> Apply for Fst7<(X,Y)> {
     type Output = X;
 }
 // trait Eval // trait Apply?
@@ -480,32 +480,140 @@ impl<B, Env> ApplyDB<Env> Lam<B> where Apply<Cons<Arg, Env>>  {
 // sized Vec?
 // I mean I think rust has sized arrayc built in, but still.
 
-trait App1<A> {
-    type T;
-}
+
 
 
 
 enum Gadt<A> {
-    TInt(PhantomData<A>),
-    TBool(PhantomData<A>)
+    TIntINTERNAL(PhantomData<A>),
+    TBoolINTERNAL(PhantomData<A>)
     
 }
 // ould macro desgar TInt to TIntINTERNALDONOTUSE + a random string
 // then build the specialzied constructors that 
-fn TBool2() -> Gadt<bool>{
-    Gadt::TBool(PhantomData)
+fn TBool() -> Gadt<bool>{
+    Gadt::TBoolINTERNAL(PhantomData)
 }
 
-fn tInt() -> Gadt<i64>{
-    Gadt::TInt(PhantomData)
+fn TInt() -> Gadt<i64>{
+    Gadt::TIntINTERNAL(PhantomData)
 }
 
 // every use site of gmatch reuqires an instance of App1 connected to a function symbol.
+trait App1<A> {
+    type T;
+}
+struct Vec1 {} // number is number of aspplications left.
+impl<A> App1<A> for Vec1{
+    type T = Vec<A>;
+}
+
 struct F1 {}
 impl<A> App1<A> for F1{
     type T = Vec<Vec<A>>;
 }
+
+// partially applied const.
+// struct Const()
+// call this next one const1
+struct Const2();
+struct Const<B>(PhantomData<B>); // should be Const1
+impl<A> App1<A> for Const2 { // partial application
+    type T = Const<A>;
+}
+
+impl<A,B> App1<A> for Const<B>{
+    type T = B; 
+}
+
+struct Id();
+
+impl<A> App1<A> for Id{
+    type T = A; 
+}
+
+struct Fst {}
+impl <A,B> App1<(A,B)> for Fst {
+    type T = A;
+} 
+
+struct Snd {}
+impl <A,B> App1<(A,B)> for Snd {
+    type T = B;
+} 
+
+
+struct Dup{}
+impl <A> App1<A> for Dup {
+    type T = (A,A);
+} 
+
+struct Par2 {}
+struct Par1<A> (PhantomData<A>);
+struct Par<A,B> (PhantomData<A> , PhantomData<B> );
+impl<F> App1<F> for Par2 {
+    type T = Par1<F>;
+}
+impl<F,G> App1<G> for Par1<F> {
+    type T = Par<F,G>;
+}
+
+impl<X,Y,F,G> App1<(X,Y)> for Par<F,G> where F : App1<X>, G : App1<Y>  {
+    type T = (F::T, G::T);
+}
+
+// In order to curry, i think I'd have to define a name for every curried form.
+
+
+// combinator calculus Const is K, Id is I, and here is S combinator. Yikes.
+type I = Id;
+type K<A> = Const<A>;
+
+struct S3{}
+struct S2<A>(PhantomData<A>);
+struct S1<A,B>(PhantomData<A>, PhantomData<B>);
+// struct S<A,B,C>(PhantomData<A>, PhantomData<B>, PhantomData<C>);
+impl <A,B,C> App1<C> for S1<A,B> where A : App1<C>, B : App1<C>, <A as App1<C>>::T : App1< <B as App1<C>>::T > {
+    type T =  < <A as App1<C>>::T   as App1< <B as App1<C>>::T > >::T;
+}  
+
+
+struct Comp2();
+struct Comp1<F> (PhantomData<F>);
+struct Comp<F,G> (PhantomData<F>, PhantomData<G>);
+impl<F,G, X> App1<X> for Comp<F,G> where G : App1<X>, F : App1<<G as App1<X>>::T> {
+    type T =  <F as App1<<G as App1<X>>::T>>::T;
+}  
+
+/*
+trait Comp<A> {
+    type T;
+}
+*/
+
+// this is basically uncurry
+trait App2<A,B> {
+    type T;
+}
+
+impl<A,B,F> App2<A,B> for F where F : App1<(A,B)> {
+    type T = <F as App1<(A,B)>>::T;
+} 
+
+/*
+
+You can program in point free style. Yikes.
+
+
+
+A helper class to apply something to 2 arguments
+trait App2<A,B> : App<A>, 
+
+
+
+
+*/
+
 // type F1 = HKT!( Vec<Vec<0,1,2>><2>  )
 // match 
 // presumably a match can be desugared by a macro. Build the above struct and instance, and turn the cases into 
@@ -517,8 +625,8 @@ fn gmatch<F,S>(x : Gadt<S>, case1 : <F as App1<bool>>::T   , case2 : <F as App1<
          F : App1<S>
          {
     match x{
-        Gadt::TBool(_) => unsafe{mem::transmute_copy(&case1)}, // I guess this is horrifying
-        Gadt::TInt(_) => unsafe{mem::transmute_copy(&case2)}
+        Gadt::TBoolINTERNAL(_) => unsafe{mem::transmute_copy(&case1)}, // I guess this is horrifying
+        Gadt::TIntINTERNAL(_) => unsafe{mem::transmute_copy(&case2)}
     }
 }
 
@@ -562,31 +670,41 @@ impl GadtElim for Gadt<i64> {
          F : App1<i64>,
          F : App1<Self::Inner>{
         match self{
-            Gadt::TInt(PhantomData) => case2,
-            Gadt::TBool(PhantomData) => panic!("Somehow TBool has type Gadt<i64>")// Will never be reached though. god willing
+            Gadt::TIntINTERNAL(PhantomData) => case2,
+            Gadt::TBoolINTERNAL(PhantomData) => panic!("Somehow TBool has type Gadt<i64>")// Will never be reached though. god willing
         }
     }
 }
 impl GadtElim for Gadt<bool> {
     type Inner = bool;
-    fn gadtElim<F>(&self, case1 : <F as App1<bool>>::T   , case2 : <F as App1<i64>>::T ) -> <F as App1<Self::Inner>>::T  where 
+    fn gadtElim<F>(&self, case1 : <F as App1<bool>>::T , case2 : <F as App1<i64>>::T ) -> <F as App1<Self::Inner>>::T  where 
          F : App1<bool>,
          F : App1<i64>,
          F : App1<Self::Inner>{
         match self{
-            Gadt::TInt(PhantomData) => panic!("Somehow TInt has type Gadt<bool>"),
-            Gadt::TBool(PhantomData) => case1 // Will never be reached though. god willing
+            Gadt::TIntINTERNAL(PhantomData) => panic!("Somehow TInt has type Gadt<bool>"),
+            Gadt::TBoolINTERNAL(PhantomData) => case1 // Will never be reached though. god willing
         }
     }
 }
+// alternative x: Gadt<S> where Gadt<S> : GadtElim
+// this is the recursor that does not use the type parameter.
+fn gadtRec<A>(x : impl GadtElim, case1 : A, case2 : A) -> A {
+    x.gadtElim::<Const<A>>(case1 , case2)
+}
+
+
+
 
 
 struct Eq<A,B>(PhantomData<A>, PhantomData<B>); // don't even bother having a constructor
 // Mauybe we should call the whole thing Refl?
-
+/*
 trait App2<A,B> {
     type T;
 }
+*/
+
 // family!(F<A,B> = Vec<yadayaydayd>) => struct F {} + impl<A,A> AppN<A,B> for F {type T = Vec yadaya}
 // altenrative
 fn matchEq<F,A,B>(x : Eq<A,B>, case1 : <F as App2<A,A>>::T) -> <F as App2<A,B>>::T where
@@ -619,5 +737,13 @@ fn main() {
     dbg!(eval(Vec::new(),  id()));
     dbg!(eval(Vec::new(),  app(fst(), pair(Lit(0),Lit(1)))     ));
     dbg!(example());
+    let z = TInt().gadtElim::<Id>(true , 34);
+    let z2 = TBool().gadtElim::<Id>(true , 34);
+
+    dbg!(z);
+    dbg!(z2);
+    struct F7 {} // You need to do this. Kind of sucks. App!(F<A> = Vec<A>)
+    impl<A> App1<A> for F7 { type T = Vec<A>; }
+    dbg!(TInt().gadtElim::<F7>(vec!(true,false) , vec!(34,45,4,3,46))); // this is really not that bad.
 
 }
