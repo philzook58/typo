@@ -499,6 +499,65 @@ fn gmatch<F,S>(x : Gadt<S>, case1 : <F as App1<bool>>::T   , case2 : <F as App1<
     }
 }
 
+/*
+enum Gadt2<A> {
+    TIntINTERNAL(PhantomData<A>),
+    TBoolINTERNAL(PhantomData<A>)
+    
+}
+fn TBool2() -> Gadt<bool>{
+    Gadt2::TBool(PhantomData)
+}
+
+fn tInt() -> Gadt<i64>{
+    Gadt2::TInt(PhantomData)
+}
+*/
+
+/*
+a more satifying possiblity. Make an eliminator typeclass
+This allows us to 
+The wrong branches are not type safe, but these should never get touched.
+We could also perhaps return a option, and then unsafe unwrap the option.
+*/
+
+trait GadtElim {
+    type Inner;
+fn gadtElim<F>(&self, case1 : <F as App1<bool>>::T   , case2 : <F as App1<i64>>::T ) -> <F as App1<Self::Inner>>::T  where 
+         F : App1<bool>,
+         F : App1<i64>,
+         F : App1<Self::Inner>;
+         
+
+}
+
+
+impl GadtElim for Gadt<i64> {
+    type Inner = i64;
+    fn gadtElim<F>(&self, case1 : <F as App1<bool>>::T   , case2 : <F as App1<i64>>::T ) -> <F as App1<Self::Inner>>::T  where 
+         F : App1<bool>,
+         F : App1<i64>,
+         F : App1<Self::Inner>{
+        match self{
+            Gadt::TInt(PhantomData) => case2,
+            Gadt::TBool(PhantomData) => panic!("Somehow TBool has type Gadt<i64>")// Will never be reached though. god willing
+        }
+    }
+}
+impl GadtElim for Gadt<bool> {
+    type Inner = bool;
+    fn gadtElim<F>(&self, case1 : <F as App1<bool>>::T   , case2 : <F as App1<i64>>::T ) -> <F as App1<Self::Inner>>::T  where 
+         F : App1<bool>,
+         F : App1<i64>,
+         F : App1<Self::Inner>{
+        match self{
+            Gadt::TInt(PhantomData) => panic!("Somehow TInt has type Gadt<bool>"),
+            Gadt::TBool(PhantomData) => case1 // Will never be reached though. god willing
+        }
+    }
+}
+
+
 struct Eq<A,B>(PhantomData<A>, PhantomData<B>); // don't even bother having a constructor
 // Mauybe we should call the whole thing Refl?
 
