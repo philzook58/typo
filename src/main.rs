@@ -24,7 +24,7 @@ impl ReflectBool for False{
 }
 
 /*
-suggestion 4.
+suggestion 4. below. Really we want some kind of PhantomEither
 
 impl ReflectBool for Either<A,B> where A : ReflectBool, B: ReflectBool {
     reflectBool(x : Either<A,B>) -> bool {
@@ -55,6 +55,29 @@ fn reifyBool<F, G, W>( x : bool, f : F, g : G) -> W where
         }
     }
 // Yea. I feel like this is kind of close to a GADT.
+/* reifyGADTTag
+// W is not going to be able to depend on the True or False aprameter. Uh.. but it doesn't have to?
+// Not for reification purposes
+// The syntactic cpying trick is decent. If you copy the text of a closure, fine. If you copy the name of a gerneric function. fine. 
+// You can't copy the name of an input to your function though. 
+// Crap. This idoesn't really work.
+// maybe we need to unsafe coerce the phantom data
+
+// trait Objects 
+// Box<Trait> is an exitstentialized type that implemented trait. Show (a) => a, kind of stuff.
+// it refers to dynamic dispatch
+// impl Trait is slightly different.
+// https://joshleeb.com/posts/rust-traits-and-trait-objects/
+
+// closures have unique types. This also feels something like an existential
+
+
+
+match x{
+    TBool() => g(PhantomData<bool>)
+}
+
+*/
 
 fn getVal<R>(x : PhantomData<R>) -> bool where R : ReflectBool  {  R::val    }
 fn example() -> bool {reifyBool(true, getVal, getVal)} // this puts true into the type system and then back out
